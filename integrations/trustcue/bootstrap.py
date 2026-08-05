@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Configure a workspace to use the local ChurnCue MCP server with OpenWorker.
+"""Configure a workspace to use TrustCue with OpenWorker and ChurnCue.
 
-The script preserves unrelated MCP server entries and atomically writes the
-workspace-scoped `.coworker/mcp.json` file. It never stores API keys.
+The script preserves unrelated MCP servers and persona preferences, writes files
+atomically, enables the built-in TrustCue persona, and never stores API keys.
 """
 
 from __future__ import annotations
@@ -81,11 +81,7 @@ def write_json_atomic(path: Path, data: dict[str, Any]) -> None:
     temp_path.replace(path)
 
 
-def configure_workspace(workspace: Path, churncue_url: str, force: bool) -> Path:
-    workspace = workspace.expanduser().resolve()
-    workspace.mkdir(parents=True, exist_ok=True)
-
-    config_path = workspace / ".coworker" / "mcp.json"
+def configure_mcp(config_path: Path, churncue_url: str, force: bool) -> None:
     config = read_json(config_path)
     servers = config.setdefault("mcpServers", {})
     if not isinstance(servers, dict):
@@ -108,15 +104,42 @@ def configure_workspace(workspace: Path, churncue_url: str, force: bool) -> Path
     }
     write_json_atomic(config_path, config)
 
+
+def enable_trustcue_persona(persona_path: Path) -> None:
+    state = read_json(persona_path)
+
+    enabled = state.setdefault("enabled", {})
+    surfaced = state.setdefault("surfaced", {})
+    if not isinstance(enabled, dict) or not isinstance(surfaced, dict):
+        raise ValueError(f"Invalid persona state in {persona_path}")
+
+    enabled["trustcue"] = True
+    surfaced["trustcue"] = True
+    state["default"] = "trustcue"
+    write_json_atomic(persona_path, state)
+
+
+def configure_workspace(
+    workspace: Path, churncue_url: str, force: bool
+) -> tuple[Path, Path, Path]:
+    workspace = workspace.expanduser().resolve()
+    workspace.mkdir(parents=True, exist_ok=True)
+
+    coworker_dir = workspace / ".coworker"
+    config_path = coworker_dir / "mcp.json"
+    persona_path = coworker_dir / "personas.json"
     prompt_path = workspace / "TRUSTCUE_DEMO_PROMPT.md"
+
+    configure_mcp(config_path, churncue_url, force)
+    enable_trustcue_persona(persona_path)
     prompt_path.write_text(DEMO_PROMPT, encoding="utf-8")
-    return config_path
+    return config_path, persona_path, prompt_path
 
 
 def main() -> int:
     args = parse_args()
     try:
-        config_path = configure_workspace(
+        config_path, persona_path, prompt_path = configure_workspace(
             workspace=args.workspace,
             churncue_url=args.churncue_url,
             force=args.force,
@@ -129,8 +152,12 @@ def main() -> int:
     print("TrustCue workspace configured successfully.")
     print(f"Workspace: {workspace}")
     print(f"MCP config: {config_path}")
-    print(f"Demo prompt: {workspace / 'TRUSTCUE_DEMO_PROMPT.md'}")
-    print("Next: start ChurnCue, start OpenWorker with this workspace, select the TrustCue persona, and paste the demo prompt.")
+    print(f"Persona state: {persona_path}")
+    print(f"Demo prompt: {prompt_path}")
+    print(
+        "Next: start ChurnCue and OpenWorker with this workspace. "
+        "TrustCue will be enabled and selected as the default persona."
+    )
     return 0
 
 
