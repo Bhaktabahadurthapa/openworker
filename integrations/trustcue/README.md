@@ -25,12 +25,14 @@ Deterministic training, scoring, and weekly comparison
       ↓
 Evidence-backed rescue report
       ↓
-Draft internal action or message
+Unsent internal action draft
       ↓
-Human approval, edit, rejection, or postponement
+Approval-gated local artifact write
+      ↓
+Manager approves, redirects, or rejects the exact content and path
 ```
 
-Risk calculations come from ChurnCue, not the language model. External writes and messages remain approval-gated by OpenWorker.
+Risk calculations come from ChurnCue, not the language model. The local demonstration never sends an external message. It uses OpenWorker's approval system to save the accepted draft under `approved-actions/`.
 
 ## Local prerequisites
 
@@ -65,9 +67,10 @@ The launcher:
 3. Generates the ChurnCue demo dataset when needed.
 4. Configures `~/trustcue-workspace/.coworker/mcp.json`.
 5. Enables TrustCue as the default OpenWorker persona.
-6. Starts ChurnCue on port `8000`.
-7. Starts OpenWorker on port `8765`.
-8. Optionally starts the browser UI.
+6. Creates `~/trustcue-workspace/approved-actions/`.
+7. Starts ChurnCue on port `8000`.
+8. Starts OpenWorker on port `8765`.
+9. Optionally starts the browser UI.
 
 Stop all local services:
 
@@ -100,7 +103,7 @@ The generated workspace MCP configuration is equivalent to `mcp.json.example`. I
 - `explain_risk`
 - `generate_rescue_report`
 
-The ChurnCue tools themselves do not send external messages, so they can run without per-call approval. Any Slack, email, CRM, file, or shell write remains governed by OpenWorker's normal approval controls.
+The ChurnCue tools do not send external messages, so they can run without per-call approval. Slack, email, CRM, shell, and other external changes remain governed by OpenWorker. The demonstration uses the approval-gated `write_file` tool only to save the accepted local draft.
 
 ## Manual startup
 
@@ -160,7 +163,10 @@ health_check
   → explain_risk
   → generate_rescue_report
   → prepare an unsent internal Slack draft
-  → wait for manager approval
+  → propose approved-actions/<draft-name>.md
+  → OpenWorker displays a write approval card
+  → manager approves, redirects, or rejects
+  → approved draft is saved locally without being sent
 ```
 
 The final output must include:
@@ -172,6 +178,7 @@ The final output must include:
 - Proposed rescue action.
 - Data-quality and model limitations.
 - A clearly labeled draft that has not been sent.
+- The saved artifact path after approval.
 
 ## Test the integration
 
@@ -193,8 +200,8 @@ The first live vertical slice is complete when a manager can:
 2. Receive a prioritized rescue report from ChurnCue.
 3. Open the evidence for one customer.
 4. Review a recommended action.
-5. Approve, edit, reject, or postpone it.
-6. Produce a draft Slack or email message without sending automatically.
+5. Approve, redirect, or reject the exact draft artifact.
+6. Save an approved Slack or email draft without sending it automatically.
 7. Record the final business outcome.
 
 The current local integration completes steps 1 through 6 with synthetic data. Durable outcome storage and a standalone TrustCue web dashboard remain later product milestones.
