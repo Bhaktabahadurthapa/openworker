@@ -34,8 +34,11 @@ Requirements:
 5. Show the top five accounts by revenue-weighted risk.
 6. Explain each account using only evidence returned by ChurnCue.
 7. Generate the rescue report.
-8. Prepare, but do not send, an internal Slack draft for manager approval.
-9. Clearly state data-quality and model limitations.
+8. Prepare, but do not send, an internal Slack draft.
+9. Show the complete draft and propose a file under `approved-actions/`.
+10. Use the approval-gated write_file tool to save the draft only after I approve the exact content and path.
+11. Do not call send_message or change any external system.
+12. Clearly state data-quality and model limitations.
 """
 
 
@@ -132,6 +135,7 @@ def configure_workspace(
 
     configure_mcp(config_path, churncue_url, force)
     enable_trustcue_persona(persona_path)
+    (workspace / "approved-actions").mkdir(exist_ok=True)
     prompt_path.write_text(DEMO_PROMPT, encoding="utf-8")
     return config_path, persona_path, prompt_path
 
@@ -154,6 +158,7 @@ def main() -> int:
     print(f"MCP config: {config_path}")
     print(f"Persona state: {persona_path}")
     print(f"Demo prompt: {prompt_path}")
+    print(f"Approved actions: {workspace / 'approved-actions'}")
     print(
         "Next: start ChurnCue and OpenWorker with this workspace. "
         "TrustCue will be enabled and selected as the default persona."
