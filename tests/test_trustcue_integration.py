@@ -45,8 +45,10 @@ def test_trustcue_persona_is_governed():
     assert agent.messaging is True
     assert agent.connectors is True
     assert "Use ChurnCue MCP tools" in agent.system_prompt
-    assert "explicit human approval" in agent.system_prompt
+    assert "approval-gated" in agent.system_prompt
     assert "Prepare external communications as drafts only" in agent.system_prompt
+    assert "Do not call send_message" in agent.system_prompt
+    assert "approved-actions/" in agent.system_prompt
 
 
 def test_bootstrap_configures_bounded_mcp_and_persona(tmp_path, monkeypatch):
@@ -83,7 +85,9 @@ def test_bootstrap_configures_bounded_mcp_and_persona(tmp_path, monkeypatch):
 
     prompt = prompt_path.read_text(encoding="utf-8")
     assert "Prepare, but do not send" in prompt
-    assert "manager approval" in prompt
+    assert "approval-gated write_file" in prompt
+    assert "Do not call send_message" in prompt
+    assert (workspace / "approved-actions").is_dir()
 
 
 def test_bootstrap_preserves_unrelated_servers_and_preferences(tmp_path):
